@@ -30,7 +30,7 @@ $flightData = [];
 
 //check if there is a row of data to be extracted
 while (strpos($flightTable, '<tr data-flight-time=') != FALSE) {
-	
+
 	//Extract next row of flight data
 	$nextFlightStartPos = strpos($flightTable, '<tr data-flight-time=');
 	$nextFlightEndPos = strpos($flightTable, '</tr>', $nextFlightStartPos);
@@ -54,18 +54,18 @@ while (strpos($flightTable, '<tr data-flight-time=') != FALSE) {
 
 	//Extract destination airport sting position
 	$airportStartPos = strpos($currentFlightDetails, '<td>', $timeEndPos) + 4;
-	$airportEndPos = strpos($currentFlightDetails, '</td>', $airportStartPos + 5);
+	$airportEndPos = strpos($currentFlightDetails, '</td>', $airportStartPos);
 
 	//Extract flight number sting position
 	$flightNumberStartPos = strpos($currentFlightDetails, '<td>', $airportEndPos) + 4;
-	$flightNumberEndPos = strpos($currentFlightDetails, '</td>', $flightNumberStartPos + 5);
+	$flightNumberEndPos = strpos($currentFlightDetails, '</td>', $flightNumberStartPos);
 
 	//Extract flight status sting position, this is just for refrence for the next 2 lines so it can skip flight status
 	$statusEndPos = strpos($currentFlightDetails, '</td>', $flightNumberEndPos + 5);
 
-	//Extract flight number sting position
+	//Extract terminal sting position
 	$terminalStartPos = strpos($currentFlightDetails, '<td>', $statusEndPos) + 4;
-	$terminalEndPos = strpos($currentFlightDetails, '</td>', $terminalStartPos + 5);
+	$terminalEndPos = strpos($currentFlightDetails, '</td>', $terminalStartPos);
 
 	//add extracted data to array ready to pass to PDF generation
 	$flightTime = substr($currentFlightDetails, $timeStartPos, $timeEndPos - $timeStartPos);//Time
@@ -131,6 +131,7 @@ $pdf->SetFont('Arial','',14);
 $pdf->AddPage();
 $pdf->FancyTable($header,$data);
 $pdf->Output();
+
 
 //cUrl code placed in function to neaten up code
 function getHTML() {
