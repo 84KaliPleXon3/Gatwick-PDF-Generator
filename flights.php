@@ -1,4 +1,9 @@
 <?php
+//Written by Craig Newbury.
+//Code is quite messy but I am still learning.
+//I am releasing this code as open source.
+//if you can learn anything from it all the better.
+
 //flights.pdf
 require 'fpdf181/fpdf.php';
 
@@ -20,6 +25,15 @@ $HTML = getHTML();
 //Extract table from curl response
 $tableStartPos = strpos($HTML, '<tbody>');
 $tableEndPos = strpos($HTML, '</tbody>');
+
+//check if there is a 2nd table of flight data
+if (strpos($HTML, '</tbody>', $tableEndPos + 8) !== FALSE) {
+
+	//if so replace current tableEndPos with new tableEndPos
+	$tableEndPos = strpos($HTML, '</tbody>', $tableEndPos + 8);
+}
+
+//set length of table(s) to extract html data
 $tableLength = $tableEndPos - $tableStartPos;
 
 //output table for next block to process
@@ -27,6 +41,14 @@ $flightTable = substr($HTML, $tableStartPos, $tableLength);
 
 //creat empty array for flight data
 $flightData = [];
+
+//find position of date in 1st table
+$firstTableDate = strpos($flightTable, '<th colspan=') + 16;
+$firstTableDateEnd = strpos($flightTable, '</th>', $firstTableDate);
+$firstTableDateLen = $firstTableDateEnd - $firstTableDate;
+
+//insert date as first record in flight data array
+$flightData[] = array(substr($flightTable, $firstTableDate, $firstTableDateLen), "", "", "");
 
 //check if there is a row of data to be extracted
 while (strpos($flightTable, '<tr data-flight-time=') != FALSE) {
@@ -37,11 +59,9 @@ while (strpos($flightTable, '<tr data-flight-time=') != FALSE) {
 	$nextFlightTextRange = $nextFlightEndPos - $nextFlightStartPos;
 	$currentFlightDetails = substr($flightTable, $nextFlightStartPos, $nextFlightTextRange);
 
-
 	//$headerAndImageStartPos = strpos($flightTable, '<tr data-flight-time='); //probably not needed we already have start position
 	$headerAndImageEndPos = strpos($currentFlightDetails, '</td>');
 	$currentFlightDetails = substr($currentFlightDetails, $headerAndImageEndPos + 5);
-
 
 	//remove unwanted HTML
 	$currentFlightDetails = str_replace(' ', '', $currentFlightDetails);
@@ -76,10 +96,33 @@ while (strpos($flightTable, '<tr data-flight-time=') != FALSE) {
 	//remove the flight data for the row we have just processed ready for next loop iteration
 	$flightTable = substr($flightTable, $nextFlightEndPos + 5);
 
-	//Add flight to array depending on script launch paramater
+	//Add flight to array depending on script terminal paramater
 	if ($flightTerm == $requestedTerminal || $requestedTerminal == "NONE") {
 		//add flight data we have just parsed to the flightData array
-		$flightData[] = array($flightTime, $flightDest, $flightNum, $flightTerm);	
+		$flightData[] = array($flightTime, $flightDest, $flightNum, $flightTerm);
+	}
+
+	//check if there is another date in the source data
+	if (strpos($flightTable, '<th colspan') !== FALSE){
+
+		//find position of next flight data in tabe
+		$closestFlight = strpos($flightTable, '<tr data-flight-time=');
+
+		//find position of next date in table (16 added for later use as a string start position)
+		$closestDateStart = strpos($flightTable, '<th colspan=') + 16;
+
+		//find position of date end
+		$closestDateEnd = strpos($flightTable, "</th>", $closestDateStart);
+
+		//calculate lengeth of date in string
+		$closestDateLen = $closestDateEnd - $closestDateStart;
+
+		//is there a date or flight next in the table
+		if ($closestDateStart < $closestFlight) {
+				//if so extract date and add to array
+				$secondTableDate = substr($flightTable, $closestDateStart, $closestDateLen);
+				$flightData[] = array($secondTableDate, "", "", "");
+		}
 	}
 }
 
@@ -135,20 +178,20 @@ $pdf->Output();
 
 //cUrl code placed in function to neaten up code
 function getHTML() {
-	// create curl resource 
-    $ch = curl_init(); 
+	// create curl resource
+    $ch = curl_init();
 
-    // set url 
-    curl_setopt($ch, CURLOPT_URL, "http://www.gatwickairport.com/flights/?type=departures"); 
+    // set url
+    curl_setopt($ch, CURLOPT_URL, "http://www.gatwickairport.com/flights/?type=departures");
 
-    //return the transfer as a string 
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1); 
+    //return the transfer as a string
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
 
-    // $output contains the output string 
-    $output = curl_exec($ch); 
+    // $output contains the output string
+    $output = curl_exec($ch);
 
-	// close curl resource to free up system resources 
-    curl_close($ch);  
+	// close curl resource to free up system resources
+    curl_close($ch);
 	return $output;
 }
 ?>
